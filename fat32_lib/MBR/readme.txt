@@ -1,0 +1,1 @@
+implementations here mainly focuses on GPT with MBR protection (so far..?)
