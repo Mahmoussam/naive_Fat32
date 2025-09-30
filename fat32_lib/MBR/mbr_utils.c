@@ -33,7 +33,7 @@ uint8_t read_partition_tables(MBR_PartitionTableEntry *table , uint8_t *read_cnt
  * Validates the last 2 bytes as a signature 0x55AA
  */
 static uint8_t validate_mbr_signature(FILE *fd){
-    #warning shall we check for fd == null here ?! or save the hustle
+    //#warning shall we check for fd == null here ?! or save the hustle
     fseek(fd , MBR_SIGNATURE_ADDR , SEEK_SET);
     uint8_t signature[2];
     fread(signature , sizeof(uint8_t) , 2 , fd);

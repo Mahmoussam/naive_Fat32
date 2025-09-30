@@ -65,6 +65,42 @@ int main(){
     printf("Num of Entries: %u \n" , header.NumberOfPartitionEntries);
     printf("Size of an Entry: %u \n" , header.sizeOfPartitionEntry);
     printf("partition array crc32: 0x%04X \n" , header.partitionArrayCRC32);
+
+    puts("\nValidating partition entry arry crc!");
+    errc = validate_GUID_Partition_Entry_Array_CRC(&header , in);
+    if(errc ){
+        puts("invalid crc!");
+        printf("%d errc\n" , errc);
+        return 0;
+    }
+    else puts("Valid array : ] ");
+    puts("============================================================");
+    printf("\tReading Partition Array Entries\n\n");
+    int valid_entires = 0;
+    long long offset = header.PartitionEntryArrayLBA * GPT_SECTOR_SIZE;
+    for(int i = 0;i < header.NumberOfPartitionEntries ;i++){
+        GPT_PartitionArrayEntry entry;
+        errc = init_GPT_PartitionArrayEntry(&entry , offset , in);
+        if(errc)continue;
+        if(entry.partition_type == UNUSED_PARTITION){
+            continue;
+        }
+        printf("[%d] type{%d} , attr{%x} , LBA_START{0x%X} , LBA_END{0x%X} \n" , i , entry.partition_type , entry.First_Attr_byte , entry.StartingLBA , entry.EndingLBA);
+        char part_name[PARTITION_ENTRY_NAME_SIZE];
+        errc = read_GPT_Partition_NAME(&entry , part_name , in);
+        //part_name[PARTITION_ENTRY_NAME_SIZE ] = 0;
+        if(errc == 0)
+            {
+                printf("\t Name>");
+                for(int ptr = 0;ptr < PARTITION_ENTRY_NAME_SIZE;ptr++){
+                    if(part_name[ptr] == 0)continue;
+                    printf("%c" , part_name[ptr]);
+                }
+                puts("");
+            }
+        offset += header.sizeOfPartitionEntry;
+    }
+
     fclose(in);
     return 0;
 }

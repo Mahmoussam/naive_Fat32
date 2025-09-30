@@ -41,7 +41,30 @@ uint8_t validate_GPT_Header_CRC(GPT_Header *header ,FILE *fd){
  * given GPT_Header
  * returns 0 on valid integrity
  */
-uint8_t validate_GUID_Partition_Entry_Array_CRC(GPT_Header *header ,FILE *fd);
+uint8_t validate_GUID_Partition_Entry_Array_CRC(GPT_Header *header ,FILE *fd){
+    if(header == NULL)return 1;
+    if(fd == NULL)return 2;
+    int BLSZ = header->NumberOfPartitionEntries * header->sizeOfPartitionEntry;
+    uint8_t *data = (uint8_t*)malloc(BLSZ);
+    if(data == NULL)return 3;
+
+    uint64_t base_addr = header->PartitionEntryArrayLBA * GPT_SECTOR_SIZE;
+    fseek(fd , base_addr , SEEK_SET);
+    int cnt = fread(data , 1 , BLSZ , fd);
+    if(cnt != BLSZ){
+        free(data);
+        return 4;
+    }
+    uint32_t crc_calc = CALC_CRC32_TABLE(data , cnt , CRC32_Table);
+    free(data);
+
+    if(crc_calc != header->partitionArrayCRC32){
+        //puts("!!! INVALID CRC");
+        return 5;
+    }
+    //printf("Valid CRC32 0x%04X \n !!" , crc_calc );
+    return 0;
+}
 
 /**
  * initializes the GPT header with necessary data from a file descriptor , at specific LBA 
@@ -93,4 +116,55 @@ uint8_t init_GPT_Header(GPT_Header *header , uint64_t starting_LBA , FILE *fd){
         return 5;
     }
     return 0;    
+}
+
+
+/**
+ * init gpt partition array entry struct with necessary data
+ */
+uint8_t init_GPT_PartitionArrayEntry(GPT_PartitionArrayEntry *entry , uint64_t base_addr , FILE *fd){
+    if(entry == NULL)return 1;
+    if(fd == NULL)return 2;
+    entry->base_addr = base_addr;
+    fseek(fd , base_addr , SEEK_SET);
+    //just read the first byte for now , seems sufficient to determine which is which
+    uint8_t partition_type_guid[1];
+    
+    //fread(partition_type_guid , 1 , PartitionTypeGUID_SIZE , fd);
+    fread(partition_type_guid , 1 , 1 , fd);
+    
+    if(partition_type_guid[0] == 0){
+        entry->partition_type =  UNUSED_PARTITION;
+    }
+    else if(partition_type_guid[0] == 0xC1){
+        entry->partition_type =  EFI_SYSTEM_PARTITION;
+    }
+    else if(partition_type_guid[0] == 0x02){
+        entry->partition_type = PART_WITH_LEGACY_MBR;
+    }
+    else if(partition_type_guid[0] == 0xA2){
+        entry->partition_type = MICROSOFT_BASIC_DATA_PARTITION;
+    }
+    else{
+        printf("UNknown PART GUID TYPE Starting wwith 0x%02X \n" ,partition_type_guid[0]);
+        return 3;
+    }
+    fseek(fd , base_addr  + PARTITION_ENTRY_FIRST_LBA_OFFSET, SEEK_SET);
+    fread(&(entry->StartingLBA) , sizeof(entry->StartingLBA) , 1 , fd);
+    fread(&(entry->EndingLBA) , sizeof(entry->EndingLBA) , 1 , fd);
+    fread(&(entry->First_Attr_byte) , sizeof(entry->First_Attr_byte) , 1 , fd);
+    return 0;
+}
+
+/**
+ * Reads the readable-name of a partition entry to given location
+ */
+uint8_t read_GPT_Partition_NAME(GPT_PartitionArrayEntry *entry ,char *buffer ,FILE *fd){
+    if(entry == NULL)return 1;
+    if(fd == NULL)return 2;
+    if(buffer == NULL)return 3;
+    fseek(fd , entry->base_addr + PARTITION_ENTRY_NAME_OFFSET , SEEK_SET);
+    int cnt = fread(buffer , 1 , PARTITION_ENTRY_NAME_SIZE , fd);
+    if(cnt != PARTITION_ENTRY_NAME_SIZE)return 4;
+    return 0;
 }

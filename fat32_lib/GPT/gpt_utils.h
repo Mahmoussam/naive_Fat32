@@ -31,4 +31,12 @@ uint8_t validate_GUID_Partition_Entry_Array_CRC(GPT_Header *header ,FILE *fd);
  */
 uint8_t init_GPT_Header(GPT_Header *header , uint64_t starting_LBA , FILE *fd);
 
+/**
+ * init gpt partition array entry struct with necessary data
+ */
+uint8_t init_GPT_PartitionArrayEntry(GPT_PartitionArrayEntry *entry , uint64_t base_addr , FILE *fd);
+/**
+ * Reads the readable-name of a partition entry to given location
+ */
+uint8_t read_GPT_Partition_NAME(GPT_PartitionArrayEntry *entry ,char *buffer ,FILE *fd);
 #endif
