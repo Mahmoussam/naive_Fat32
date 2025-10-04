@@ -6,7 +6,7 @@
 #include "fat32_lib/MBR/mbr_utils.h"
 #include "fat32_lib/GPT/gpt_types.h"
 #include "fat32_lib/GPT/gpt_utils.h"
-
+#include "fat32_lib/FAT32/fat32_utils.h"
 /*
 cd "d:\explore_FAT\naive_fat32\" ;if ($?) { gcc reader_test.c (Get-ChildItem -Recurse fat32_lib -Filter *.c | ForEach-Object { $_.FullName }) -I./fat32_lib -o reader_test } ;if ($?) { .\reader_test }
 */
@@ -78,6 +78,7 @@ int main(){
     printf("\tReading Partition Array Entries\n\n");
     int valid_entires = 0;
     long long offset = header.PartitionEntryArrayLBA * GPT_SECTOR_SIZE;
+    uint64_t fat32_vol_addr = -1;
     for(int i = 0;i < header.NumberOfPartitionEntries ;i++){
         GPT_PartitionArrayEntry entry;
         errc = init_GPT_PartitionArrayEntry(&entry , offset , in);
@@ -97,10 +98,30 @@ int main(){
                     printf("%c" , part_name[ptr]);
                 }
                 puts("");
+
+                fat32_vol_addr = entry.StartingLBA * GPT_SECTOR_SIZE;
             }
         offset += header.sizeOfPartitionEntry;
     }
-
+    puts("======================================");
+    printf("\tReading Fat32 Volume\n");
+    FAT_All_BPB_Head fat_head;
+    
+    errc = read_fat32_BPB_header(&fat_head , fat32_vol_addr , in);
+    if(errc == 0){
+        printf("[!] sector size %u\n\
+        [!] total sectors %u\n\
+        [!] Number of FATS %u\n\
+        [!] Size of a FAT in sectors %u\n\
+        [!] Sectors per cluster %u\n\
+        [x] ROOT Cluster @ 0x%X\n"\
+        , fat_head.sector_size , fat_head.total_sectors , fat_head.NumFATs , fat_head.FAT_size_in_sectors
+        , fat_head.sectors_per_cluster
+        , fat_head.root_cluster);
+    }
+    else{
+        printf("Failed to read FAt32 @ %0X with errc %u\n" , fat32_vol_addr , errc);
+    }
     fclose(in);
     return 0;
 }
