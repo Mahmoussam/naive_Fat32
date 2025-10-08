@@ -19,7 +19,7 @@ void endianity_check();
 int main(){
     //endianity_check();
 
-    FILE *in = fopen("my_usb_disk_physical" , "rb");
+    FILE *in = fopen("sample_disk2" , "rb");
 
     if(in == NULL){
         printf("Img not found!\n Aborting..\n");
@@ -117,18 +117,36 @@ int main(){
         [x] ROOT Cluster @ 0x%X\n\
         [!] Rsvdcnt %u\n\
         [#] Data Addr 0x%X\n\
-        [#] cnt of data Clusters %u\n"
+        [#] cnt of data Clusters %u\n\
+        [x] FAT 1 addr @ 0x%X\n"
         , fat_head.sector_size , fat_head.total_sectors , fat_head.NumFATs , fat_head.FAT_size_in_sectors
         , fat_head.sectors_per_cluster
         , fat_head.root_cluster
         , fat_head.RsvdSecCnt
         , fat_head.data_addr 
-        , fat_head.total_data_clusters);
+        , fat_head.total_data_clusters
+        , fat_head.current_FAT_ADDR);
     }
     else{
         printf("Failed to read FAt32 @ %0X with errc %u\n" , fat32_vol_addr , errc);
         return 1;
     }
+    puts("=======================================");
+    uint32_t tmpcl;
+    errc = get_next_cluster_fat32(2 , &tmpcl , &fat_head , in);
+    printf("[!] Test next cluster to #2 is %u     >%u\n",tmpcl,errc);
+    errc = get_next_cluster_fat32(0x6 , &tmpcl , &fat_head , in);
+    printf("[!] Test next cluster to 0x6 is %u     >%u\n",tmpcl,errc);
+    puts("=======================================");
+    uint64_t tmpaddr;
+    errc = get_cluster_address(2 , &tmpaddr , &fat_head);
+    printf("[!] Test cluster address calc of #2 is 0x%X\n" , tmpaddr);
+
+    errc = get_cluster_address(6 , &tmpaddr , &fat_head);
+    printf("[!] Test cluster address calc of #6 is 0x%X\n" , tmpaddr);
+
+    puts("======================================");
+    printf("\tReading Root directory\n");
 
     fclose(in);
     return 0;
