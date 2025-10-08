@@ -21,6 +21,7 @@
 // FAT
 #define BPB_BytsPerSec_OFFSET (11)
 #define BPB_SecPerClus_OFFSET (13)
+#define BPB_RsvdSecCnt        (14)
 #define BPB_NumFATs_OFFSET    (16)
 #define BPB_TotSec32_OFFSET   (32)
 
@@ -43,14 +44,20 @@
  * compatible with Fat12/16/32
  */
 typedef struct{//refers to logical sector 0 !!
-    uint64_t base_addr;             //compatible with Fat12/16/32
-    
-    uint32_t FAT_size_in_sectors;// differs being Fat32 or Fat12/16..
+    uint64_t base_addr;             //address of the start of Fat32 volume
+                                    // BPB address..
+
+    uint64_t data_addr;             // address of the data (Cluster 2)
+
+
+    uint32_t FAT_size_in_sectors;   // differs being Fat32 or Fat12/16..
     uint32_t total_sectors;
+    uint32_t total_data_clusters;
     uint32_t root_cluster;
 
     uint16_t sector_size;           //compatible with Fat12/16/32
-    
+    uint16_t RsvdSecCnt;
+
     uint8_t sectors_per_cluster;    //compatible with Fat12/16/32
     uint8_t NumFATs;                //compatible with Fat12/16/32
     
@@ -66,3 +73,8 @@ typedef struct{//refers to logical sector 0 !!
 
 
 #endif
+/**
+ * Notes
+ * data addr = volume addr + rsv sectors count * sector size + Fat nums * Fat size
+ * Fat entry is 32 bits for FAT32 sys
+ */

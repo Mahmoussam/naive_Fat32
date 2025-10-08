@@ -34,11 +34,11 @@ int main(){
         return 0;
     }
 
-    //printf("\nCould Read %d entries from MBR\n\n" , cnt);
-    // for(int i = 0;i < cnt;i++){
-    //     printf("Partition #%d: Type: 0x%X\n" , i , partitions_table[i].parition_type);
-    //     printf("    Atrrib: 0x%X\n    Start LBA: 0x%X  Size(sectors):%u\n===========================\n" , partitions_table[i].drive_atrributes , partitions_table[i].start_sector , partitions_table[i].size_in_sectors);        
-    // }
+    printf("\nCould Read %d entries from MBR\n\n" , cnt);
+     for(int i = 0;i < cnt;i++){
+         printf("Partition #%d: Type: 0x%X\n" , i , partitions_table[i].parition_type);
+         printf("    Atrrib: 0x%X\n    Start LBA: 0x%X  Size(sectors):%u\n===========================\n" , partitions_table[i].drive_atrributes , partitions_table[i].start_sector , partitions_table[i].size_in_sectors);        
+     }
     uint8_t target_partition = 0xFF;
     for(int i = 0;i < cnt;i++){
         if(partitions_table[i].parition_type == 0xEE){
@@ -109,19 +109,27 @@ int main(){
     
     errc = read_fat32_BPB_header(&fat_head , fat32_vol_addr , in);
     if(errc == 0){
-        printf("[!] sector size %u\n\
+        printf("\t[!] sector size %u\n\
         [!] total sectors %u\n\
         [!] Number of FATS %u\n\
         [!] Size of a FAT in sectors %u\n\
         [!] Sectors per cluster %u\n\
-        [x] ROOT Cluster @ 0x%X\n"\
+        [x] ROOT Cluster @ 0x%X\n\
+        [!] Rsvdcnt %u\n\
+        [#] Data Addr 0x%X\n\
+        [#] cnt of data Clusters %u\n"
         , fat_head.sector_size , fat_head.total_sectors , fat_head.NumFATs , fat_head.FAT_size_in_sectors
         , fat_head.sectors_per_cluster
-        , fat_head.root_cluster);
+        , fat_head.root_cluster
+        , fat_head.RsvdSecCnt
+        , fat_head.data_addr 
+        , fat_head.total_data_clusters);
     }
     else{
         printf("Failed to read FAt32 @ %0X with errc %u\n" , fat32_vol_addr , errc);
+        return 1;
     }
+
     fclose(in);
     return 0;
 }
