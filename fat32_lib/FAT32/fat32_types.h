@@ -42,7 +42,11 @@
 #define BS_VOLLAB_OFFSET      (71)
 #define BS_FilSysType_OFFSET  (82)
 #define SIGNATURE_WORD_OFFSET (510)
-
+// directory structure
+#define DIR_CrtTime_OFFSET    (14)
+#define DIR_FstClusHI_OFFSET  (20)
+#define DIR_FstClusLO_OFFSET  (26)
+#define DIR_FileSize_OFFSET   (28)
 // Data types
 /******************************************** */
 
@@ -83,6 +87,10 @@ typedef struct{//refers to logical sector 0 !!
  * refer to the specs for more details..
  */
 typedef struct{
+
+    uint64_t entry_address;     // Address of the Entry for further info fetching
+    
+    
     uint32_t DIR_FstClus;       // Combines the low and high words
                                 // First cluster of this element
 
@@ -106,4 +114,5 @@ typedef struct{
  * data addr = volume addr + rsv sectors count * sector size + Fat nums * Fat size
  * Fat entry is 32 bits for FAT32 sys
  * FSI structure exists @ logical(not physical) sector 1 
+ * max file size is ~4GB on FAT32
  */

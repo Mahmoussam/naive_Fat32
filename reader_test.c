@@ -147,7 +147,31 @@ int main(){
 
     puts("======================================");
     printf("\tReading Root directory\n");
+    // root directory structure:
+    FAT32_Directory_Entry root_dir;
+    root_dir.DIR_FstClus = root_dir.current_cluster = fat_head.root_cluster;
 
+    //read it..
+    uint32_t dir_entries_per_cluster = fat_head.sector_size * fat_head.sectors_per_cluster / 32;
+    FAT32_Directory_Entry *dir_table = malloc(dir_entries_per_cluster * sizeof(FAT32_Directory_Entry))
+        , *ptr;
+    while((errc = get_current_directory_cluster_entries(dir_table , &fat_head , &root_dir , in , dir_entries_per_cluster)) == 0){
+        int cnt = 0;
+        ptr = dir_table;
+        for(int i = 0;i < dir_entries_per_cluster;i++){
+            if(ptr->DIR_Attr){
+                cnt++;
+                //print its data..
+                printf("[*] ");
+                for(int d = 0;d < 11;d++)if(ptr->DIR_Name[d] == 0)continue;
+                                        else printf("%c" , ptr->DIR_Name[d]);
+                printf(" @ 0x%X | Attr: 0x%02X | Size : %u\n"  , ptr->DIR_FstClus , ptr->DIR_Attr , ptr->DIR_FileSize);
+            }
+            ptr++;
+        }
+        if(cnt)
+            puts("- - - - - - - - - - - - - - - - - - -");
+    }
     fclose(in);
     return 0;
 }

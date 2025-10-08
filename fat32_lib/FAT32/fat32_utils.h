@@ -23,4 +23,8 @@ uint8_t get_cluster_address(uint32_t cluster,uint64_t *result_address, FAT_All_B
  * the cursor of file stream input must point to offset of the entry
  */
 uint8_t read_directory_entry_at_cursor(FAT32_Directory_Entry *entry , FILE * fd);
+/**
+ * gets the entries of the next cluster data 
+ */
+uint8_t get_current_directory_cluster_entries(FAT32_Directory_Entry* data_result , FAT_All_BPB_Head *fat_head , FAT32_Directory_Entry *parent_directory , FILE *fd , uint32_t EntriesNums);
 #endif

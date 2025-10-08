@@ -72,3 +72,58 @@ uint8_t get_cluster_address(uint32_t cluster,uint64_t *result_address, FAT_All_B
     *(result_address) = fat_head->data_addr + ((uint64_t)cluster - 2) * ((uint64_t)fat_head->sectors_per_cluster) * ((uint64_t)fat_head->sector_size);
     return 0;
 }
+
+uint8_t read_directory_entry_at_cursor(FAT32_Directory_Entry *entry , FILE * fd){
+    if(entry == NULL)return 1;
+    if(fd == NULL)return 2;
+    // 
+    entry->entry_address = ftello(fd);
+    // read name
+    fread(entry->DIR_Name , 1 , 11 , fd);
+    // read attr
+    fread(&entry->DIR_Attr , 1 , 1 , fd);
+    
+    //read date/time of creation and lst access date
+    fseeko(fd , entry->entry_address + DIR_CrtTime_OFFSET , SEEK_SET);
+    fread(&entry->DIR_CrtTime ,sizeof(entry->DIR_CrtTime) , 1 , fd);
+    fread(&entry->DIR_CrtDate ,sizeof(entry->DIR_CrtDate) , 1 , fd);
+    fread(&entry->DIR_LstAccDate ,sizeof(entry->DIR_LstAccDate) , 1 , fd);
+    //read Fst cluster
+    uint8_t tmp_word;
+    fseeko(fd , entry->entry_address + DIR_FstClusHI_OFFSET , SEEK_SET);
+    fread(&tmp_word , 1 , 1 , fd);
+    entry->DIR_FstClus = tmp_word;
+    entry->DIR_FstClus <<= 8;
+    fseeko(fd , entry->entry_address + DIR_FstClusLO_OFFSET , SEEK_SET);
+    fread(&tmp_word , 1 , 1 , fd);
+    entry->DIR_FstClus |= tmp_word;
+
+    entry->current_cluster = entry->DIR_FstClus;
+    // read file size 
+    fseeko(fd , entry->entry_address + DIR_FileSize_OFFSET , SEEK_SET);
+    fread(&entry->DIR_FileSize ,sizeof(entry->DIR_FileSize) , 1 , fd);
+    
+    return 0;
+}
+
+uint8_t get_current_directory_cluster_entries(FAT32_Directory_Entry* data_result , FAT_All_BPB_Head *fat_head , FAT32_Directory_Entry *parent_directory , FILE *fd , uint32_t EntriesNums){
+    if(data_result == NULL)return 1;
+    if(parent_directory == NULL)return 2;
+    if(fd == NULL)return 3;
+    if(fat_head == NULL)return 4;
+    if(parent_directory->current_cluster == 0xFFFFFFFF)return 5;
+    uint32_t next_cluster;
+    uint8_t errc = 0;
+    if((errc = get_next_cluster_fat32(parent_directory->current_cluster , &next_cluster , fat_head , fd)))
+        return 10 + errc;
+    uint64_t start_addr;
+    errc = get_cluster_address(parent_directory->current_cluster , &start_addr ,  fat_head);
+    fseeko(fd , start_addr , SEEK_SET);
+    FAT32_Directory_Entry *ptr = data_result;
+    for(uint32_t ii = 0;ii < EntriesNums;ii++){
+        read_directory_entry_at_cursor(ptr , fd);
+        ptr++;
+    }
+    parent_directory->current_cluster = next_cluster;
+    return 0;
+}
