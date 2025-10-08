@@ -17,7 +17,7 @@ uint8_t validate_GPT_Header_CRC(GPT_Header *header ,FILE *fd){
 
     uint64_t base_addr = header->MyLBA * GPT_SECTOR_SIZE;
 
-    fseek(fd , base_addr , SEEK_SET);
+    fseeko(fd , base_addr , SEEK_SET);
     int cnt = fread(data , 1 , header->header_size , fd);
     if(cnt != header->header_size){
         free(data);
@@ -49,7 +49,7 @@ uint8_t validate_GUID_Partition_Entry_Array_CRC(GPT_Header *header ,FILE *fd){
     if(data == NULL)return 3;
 
     uint64_t base_addr = header->PartitionEntryArrayLBA * GPT_SECTOR_SIZE;
-    fseek(fd , base_addr , SEEK_SET);
+    fseeko(fd , base_addr , SEEK_SET);
     int cnt = fread(data , 1 , BLSZ , fd);
     if(cnt != BLSZ){
         free(data);
@@ -76,7 +76,7 @@ uint8_t init_GPT_Header(GPT_Header *header , uint64_t starting_LBA , FILE *fd){
     uint64_t base_addr = starting_LBA * GPT_SECTOR_SIZE;
 
     //validate signature..
-    fseek(fd , base_addr , SEEK_SET);
+    fseeko(fd , base_addr , SEEK_SET);
     uint8_t read_signature[8];
     
     fread(read_signature , 1 , 8 , fd);
@@ -86,21 +86,21 @@ uint8_t init_GPT_Header(GPT_Header *header , uint64_t starting_LBA , FILE *fd){
     }//valid signature
 
     //get header size in bytes..
-    fseek(fd , base_addr + HEADER_SIZE_OFFSET , SEEK_SET);
+    fseeko(fd , base_addr + HEADER_SIZE_OFFSET , SEEK_SET);
     fread(&(header->header_size) , sizeof(header->header_size) , 1 , fd);
 
     //MY LBA
-    fseek(fd , MY_LBA_OFFSET + base_addr, SEEK_SET);
+    fseeko(fd , MY_LBA_OFFSET + base_addr, SEEK_SET);
     fread(&(header->MyLBA) , sizeof(header->MyLBA) , 1 , fd);
     //alertnate LBA
     fread(&(header->AlternateLBA) , sizeof(header->AlternateLBA) , 1 , fd);
 
     //disk GUID
-    fseek(fd , base_addr + DISK_GUID_OFFSET, SEEK_SET);
+    fseeko(fd , base_addr + DISK_GUID_OFFSET, SEEK_SET);
     fread(header->DiskGUID , sizeof(header->DiskGUID[0]) , DISK_GUID_SIZE_IN_BYTES  , fd);
 
     // partition entry stuff..
-    fseek(fd , base_addr + PARTITION_ENTRY_ARRAY_LBA_OFFSET , SEEK_SET);
+    fseeko(fd , base_addr + PARTITION_ENTRY_ARRAY_LBA_OFFSET , SEEK_SET);
     fread(&(header->PartitionEntryArrayLBA) , sizeof(header->PartitionEntryArrayLBA) , 1 , fd);
     fread(&(header->NumberOfPartitionEntries) , sizeof(header->NumberOfPartitionEntries) , 1 , fd);
     fread(&(header->sizeOfPartitionEntry) , sizeof(header->sizeOfPartitionEntry) , 1 , fd);
@@ -126,7 +126,7 @@ uint8_t init_GPT_PartitionArrayEntry(GPT_PartitionArrayEntry *entry , uint64_t b
     if(entry == NULL)return 1;
     if(fd == NULL)return 2;
     entry->base_addr = base_addr;
-    fseek(fd , base_addr , SEEK_SET);
+    fseeko(fd , base_addr , SEEK_SET);
     //just read the first byte for now , seems sufficient to determine which is which
     uint8_t partition_type_guid[1];
     
@@ -149,7 +149,7 @@ uint8_t init_GPT_PartitionArrayEntry(GPT_PartitionArrayEntry *entry , uint64_t b
         printf("UNknown PART GUID TYPE Starting wwith 0x%02X \n" ,partition_type_guid[0]);
         return 3;
     }
-    fseek(fd , base_addr  + PARTITION_ENTRY_FIRST_LBA_OFFSET, SEEK_SET);
+    fseeko(fd , base_addr  + PARTITION_ENTRY_FIRST_LBA_OFFSET, SEEK_SET);
     fread(&(entry->StartingLBA) , sizeof(entry->StartingLBA) , 1 , fd);
     fread(&(entry->EndingLBA) , sizeof(entry->EndingLBA) , 1 , fd);
     fread(&(entry->First_Attr_byte) , sizeof(entry->First_Attr_byte) , 1 , fd);
@@ -163,7 +163,7 @@ uint8_t read_GPT_Partition_NAME(GPT_PartitionArrayEntry *entry ,char *buffer ,FI
     if(entry == NULL)return 1;
     if(fd == NULL)return 2;
     if(buffer == NULL)return 3;
-    fseek(fd , entry->base_addr + PARTITION_ENTRY_NAME_OFFSET , SEEK_SET);
+    fseeko(fd , entry->base_addr + PARTITION_ENTRY_NAME_OFFSET , SEEK_SET);
     int cnt = fread(buffer , 1 , PARTITION_ENTRY_NAME_SIZE , fd);
     if(cnt != PARTITION_ENTRY_NAME_SIZE)return 4;
     return 0;
