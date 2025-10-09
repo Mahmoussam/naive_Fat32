@@ -1,0 +1,2 @@
+same text for the Hello world file 
+@ root directory !

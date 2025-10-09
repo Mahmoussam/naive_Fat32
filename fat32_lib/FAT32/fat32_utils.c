@@ -1,5 +1,9 @@
 #include "fat32_utils.h"
+// variables and buffers
+static uint8_t writing_buffer[WRITING_BUFFER_SIZE];
 
+
+// implementations
 
 uint8_t read_fat32_BPB_header(FAT_All_BPB_Head *fat_head , uint64_t base_addr, FILE *fd){
     if(fat_head == NULL)return 1;
@@ -46,7 +50,9 @@ uint8_t read_fat32_BPB_header(FAT_All_BPB_Head *fat_head , uint64_t base_addr, F
 
     // calc address of the first FAT table (default)
     fat_head->current_FAT_ADDR = base_addr + fat_head->sector_size * ((uint64_t)fat_head->RsvdSecCnt);
-
+    
+    // calc cluster size in bytes
+    fat_head->cluster_size = ((uint32_t)fat_head->sector_size) * ((uint32_t)fat_head->sectors_per_cluster);
     return 0;
 }
 
@@ -106,12 +112,12 @@ uint8_t read_directory_entry_at_cursor(FAT32_Directory_Entry *entry , FILE * fd)
     return 0;
 }
 
-uint8_t get_current_directory_cluster_entries(FAT32_Directory_Entry* data_result , FAT_All_BPB_Head *fat_head , FAT32_Directory_Entry *parent_directory , FILE *fd , uint32_t EntriesNums){
+uint8_t get_current_directory_cluster_entries(FAT32_Directory_Entry* data_result , FAT_All_BPB_Head *fat_head , FAT32_Directory_Entry *parent_directory , FILE *fd , uint32_t EntriesNums ){
     if(data_result == NULL)return 1;
     if(parent_directory == NULL)return 2;
     if(fd == NULL)return 3;
     if(fat_head == NULL)return 4;
-    if(parent_directory->current_cluster == 0xFFFFFFFF)return 5;
+    if(parent_directory->current_cluster == EOF)return 5;
     uint32_t next_cluster;
     uint8_t errc = 0;
     if((errc = get_next_cluster_fat32(parent_directory->current_cluster , &next_cluster , fat_head , fd)))
@@ -122,8 +128,66 @@ uint8_t get_current_directory_cluster_entries(FAT32_Directory_Entry* data_result
     FAT32_Directory_Entry *ptr = data_result;
     for(uint32_t ii = 0;ii < EntriesNums;ii++){
         read_directory_entry_at_cursor(ptr , fd);
+        
         ptr++;
     }
     parent_directory->current_cluster = next_cluster;
     return 0;
 }
+
+uint8_t write_complete_file_out(FAT32_Directory_Entry *directory , FILE *in_fd , int out_fd , FAT_All_BPB_Head * fat_head){
+    if(directory == NULL)return 1;
+    if(in_fd == NULL)return 2;
+    //make sure it is a file
+    if(is_entry_a_subdirectory(directory->DIR_Attr))
+        return 3;
+
+    uint32_t current_cluster = directory->DIR_FstClus;
+    if(current_cluster == EOF)
+        return 4;
+    
+    uint32_t remaining_size = directory->DIR_FileSize 
+            , target_size;
+    uint8_t errc;
+    while(current_cluster != EOF && remaining_size){
+        target_size = (remaining_size < fat_head->cluster_size ? remaining_size : fat_head->cluster_size);
+        
+        if((errc = write_from_cluster_out(current_cluster , target_size , out_fd , fat_head , in_fd)))
+            return errc + 10;
+
+        remaining_size -= target_size;
+        current_cluster = get_next_cluster_fat32(current_cluster , &current_cluster , fat_head , in_fd);
+    }
+
+    return 0;
+}
+
+uint8_t write_from_cluster_out(uint32_t cluster , uint32_t size , int out_fd , FAT_All_BPB_Head * fat_head , FILE *in_fd){
+    if(fat_head == NULL)return 1;
+    uint8_t errc;
+    uint64_t start_addr;
+    errc = get_cluster_address(cluster , &start_addr , fat_head);
+    if(errc)
+        return errc + 10;
+    // if size to write exceeds the actual cluster size !
+    if(size > fat_head->cluster_size)
+        return 2;
+    fseeko(in_fd , start_addr , SEEK_SET);
+    uint32_t target_size;
+    //printf("\tw_f_c_o:: %u , %u\n" , cluster , size);
+    while(size > 0){
+        target_size = (size < WRITING_BUFFER_SIZE? size : WRITING_BUFFER_SIZE);
+        int read_cnt = fread(writing_buffer , 1 , target_size , in_fd);
+        int swritten = write(out_fd , writing_buffer , read_cnt);
+        //printf("\t? %u , %u\n" , read_cnt , swritten);
+        // for(int i = 0;i < read_cnt;i++){
+        //     printf("%02X " , writing_buffer[i]);
+        // }puts("");
+        if(swritten == -1)
+            return 3;
+        size -= swritten;
+    }
+    return 0;
+}
+
+

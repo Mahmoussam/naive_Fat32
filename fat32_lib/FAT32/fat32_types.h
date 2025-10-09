@@ -18,6 +18,13 @@
 
 #define ATTR_LONG_NAME        (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID) // 0x0F
 #define ATTR_LONG_NAME_MASK   (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID | ATTR_DIRECTORY | ATTR_ARCHIVE) // 0x3F
+
+#define WRITING_BUFFER_SIZE 512
+
+//#define FAT32_EOF       -1 //0xFFFFFFFF
+
+/******************************************** */
+
 /******************************************** */
 
 // ADDRs
@@ -69,7 +76,8 @@ typedef struct{//refers to logical sector 0 !!
     uint32_t FAT_size_in_sectors;   // differs being Fat32 or Fat12/16..
     uint32_t total_sectors;
     uint32_t total_data_clusters;   // total number of clusters used to store actual data
-                                    
+    
+    uint32_t cluster_size;          // in bytes
     uint32_t root_cluster;
 
     uint16_t sector_size;           //compatible with Fat12/16/32

@@ -155,23 +155,44 @@ int main(){
     uint32_t dir_entries_per_cluster = fat_head.sector_size * fat_head.sectors_per_cluster / 32;
     FAT32_Directory_Entry *dir_table = malloc(dir_entries_per_cluster * sizeof(FAT32_Directory_Entry))
         , *ptr;
-    while((errc = get_current_directory_cluster_entries(dir_table , &fat_head , &root_dir , in , dir_entries_per_cluster)) == 0){
+    while((errc = get_current_directory_cluster_entries(dir_table , &fat_head , &root_dir , in , dir_entries_per_cluster )) == 0 ){
         int cnt = 0;
         ptr = dir_table;
         for(int i = 0;i < dir_entries_per_cluster;i++){
-            if(ptr->DIR_Attr){
+            if(ptr->DIR_Name[0] == 0x00){
+                cnt = 0;
+                break;
+            }
+            //if(ptr->DIR_Attr){
                 cnt++;
                 //print its data..
-                printf("[*] ");
+                if(is_entry_LFN(ptr->DIR_Attr))
+                    printf("[>] ");
+                else if(is_entry_a_subdirectory(ptr->DIR_Attr))
+                    printf("[+] ");
+                else
+                    printf("[*] ");
                 for(int d = 0;d < 11;d++)if(ptr->DIR_Name[d] == 0)continue;
                                         else printf("%c" , ptr->DIR_Name[d]);
                 printf(" @ 0x%X | Attr: 0x%02X | Size : %u\n"  , ptr->DIR_FstClus , ptr->DIR_Attr , ptr->DIR_FileSize);
-            }
+            //}
             ptr++;
         }
         if(cnt)
             puts("- - - - - - - - - - - - - - - - - - -");
+        else break;
     }
+    puts("- - - - - - - - - - - - - - - - - - -");
+    //testing writing file..
+    FAT32_Directory_Entry *file = (dir_table + 7);
+    printf("file `%.11s` to download \n" , file->DIR_Name);
+    int out_fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
+    errc = write_complete_file_out(file , in , out_fd , &fat_head);
+    printf("Done writing with code> %u" , errc);
+    close(out_fd);
+    free(dir_table);
+
+
     fclose(in);
     return 0;
 }
