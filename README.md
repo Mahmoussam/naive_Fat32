@@ -38,3 +38,5 @@ May build a higher-level wrapper or tweak it more for embedded systems applicati
   http://www.tavi.co.uk/phobos/fat.html
   https://uefi.org/specs/UEFI/2.10/05_GUID_Partition_Table_Format.html
 ```
+![.](https://github.com/Mahmoussam/naive_Fat32/blob/master/Screenshot%202025-10-10%20162530.png)
+![.](https://github.com/Mahmoussam/naive_Fat32/blob/master/Screenshot%202025-10-10%20162300.png)
