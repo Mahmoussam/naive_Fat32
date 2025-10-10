@@ -6,7 +6,7 @@ Also, gaining the ability to tweak it further for small memory microcontrollers 
 Currently, it can read physical disk images.
 Despite the focus on MBR-protected GPT partitioned implementations, the utility provides a base skeleton that welcomes extensions to various types of partitioning.
 
-The CRC module I used was independently repo-ed [here](https://github.com/Mahmoussam/CRC_SIMPLE)
+The CRC module I developed and used was independently repo-ed [here](https://github.com/Mahmoussam/CRC_SIMPLE) , used it for GPT integrity validation.
 
 ## Stuff implemented so far:
   -  MBR Structures and Utilities.
