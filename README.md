@@ -1,4 +1,4 @@
-# Naive FAT32
+# 💾 Naive FAT32
 
 As the name suggests, this is a small library I developed with the intention of exploring the low-level aspects of file systems at the physical level.
 Also, gaining the ability to tweak it further for small memory microcontrollers (Embedded systems). Thus, memory optimization was favored over speed or buffering.
